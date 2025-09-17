@@ -42,7 +42,7 @@ export async function GET() {
       id: config.id,
       endpoint: config.endpoint,
       method: config.method as MockConfig['method'],
-      response: config.response,
+      response: config.response, // Already JSON from PostgreSQL
       statusCode: config.statusCode,
       headers: (config.headers as Record<string, string>) || {},
       delay: config.delay || 0,
@@ -51,7 +51,7 @@ export async function GET() {
       updatedAt: config.updatedAt.toISOString(),
       name: config.name || undefined,
       description: config.description || undefined,
-      tags: config.tags || []
+      tags: Array.isArray(config.tags) ? config.tags : [] // Handle string array from PostgreSQL
     }));
     
     return NextResponse.json({
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       data: {
         endpoint,
         method,
-        response,
+        response, // Will be stored as JSON in PostgreSQL
         statusCode: statusCode || 200,
         headers: headers || {},
         delay: delay || 0,
@@ -112,12 +112,12 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Transform response to match our interface
-    const transformedConfig = {
+    // Transform response to match our interface for POST
+    const transformedConfigPost = {
       id: config.id,
       endpoint: config.endpoint,
       method: config.method as MockConfig['method'],
-      response: config.response,
+      response: config.response, // Already JSON from PostgreSQL
       statusCode: config.statusCode,
       headers: (config.headers as Record<string, string>) || {},
       delay: config.delay || 0,
@@ -126,15 +126,19 @@ export async function POST(request: NextRequest) {
       updatedAt: config.updatedAt.toISOString(),
       name: config.name || undefined,
       description: config.description || undefined,
-      tags: config.tags || []
+      tags: Array.isArray(config.tags) ? config.tags : []
     };
 
     return NextResponse.json({
       success: true,
-      data: transformedConfig
+      data: transformedConfigPost
     });
   } catch (error) {
     console.error('❌ Database error in Mock Config POST:', error);
+    
+    // Extract variables from the body (they might be out of scope)
+    const body = await request.clone().json();
+    const { endpoint, method, response, statusCode, headers, delay, enabled, name, description, tags } = body;
     
     // Si hay error de base de datos, devolver respuesta simulada
     const mockConfig = {
@@ -178,7 +182,7 @@ export async function PUT(request: NextRequest) {
       data: {
         endpoint,
         method,
-        response,
+        response, // Will be stored as JSON in PostgreSQL
         statusCode,
         headers,
         delay,
@@ -190,12 +194,12 @@ export async function PUT(request: NextRequest) {
       }
     });
 
-    // Transform response to match our interface
-    const transformedConfig = {
+    // Transform response to match our interface for PUT
+    const transformedConfigPut = {
       id: config.id,
       endpoint: config.endpoint,
       method: config.method as MockConfig['method'],
-      response: config.response,
+      response: config.response, // Already JSON from PostgreSQL
       statusCode: config.statusCode,
       headers: (config.headers as Record<string, string>) || {},
       delay: config.delay || 0,
@@ -204,12 +208,12 @@ export async function PUT(request: NextRequest) {
       updatedAt: config.updatedAt.toISOString(),
       name: config.name || undefined,
       description: config.description || undefined,
-      tags: config.tags || []
+      tags: Array.isArray(config.tags) ? config.tags : []
     };
 
     return NextResponse.json({
       success: true,
-      data: transformedConfig
+      data: transformedConfigPut
     });
   } catch (error) {
     console.error('Database error:', error);
@@ -260,7 +264,7 @@ export async function getMockConfigs(): Promise<MockConfig[]> {
       id: config.id,
       endpoint: config.endpoint,
       method: config.method as MockConfig['method'],
-      response: config.response,
+      response: config.response, // Already JSON from PostgreSQL
       statusCode: config.statusCode,
       headers: (config.headers as Record<string, string>) || {},
       delay: config.delay || 0,
@@ -269,7 +273,7 @@ export async function getMockConfigs(): Promise<MockConfig[]> {
       updatedAt: config.updatedAt.toISOString(),
       name: config.name || undefined,
       description: config.description || undefined,
-      tags: config.tags || []
+      tags: Array.isArray(config.tags) ? config.tags : []
     }));
   } catch (error) {
     console.error('Database error:', error);

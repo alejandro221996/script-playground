@@ -24,6 +24,8 @@ interface MockConfigPanelProps {
 
 export interface MockConfigPanelRef {
   refresh: () => Promise<void>;
+  getMockConfigs: () => MockConfig[];
+  mockExists: (endpoint: string, method?: string) => boolean;
 }
 
 export const MockConfigPanel = forwardRef<MockConfigPanelRef, MockConfigPanelProps>(
@@ -41,7 +43,15 @@ export const MockConfigPanel = forwardRef<MockConfigPanelRef, MockConfigPanelPro
 
   // Exponer función para refresh externo
   useImperativeHandle(ref, () => ({
-    refresh: loadConfigs
+    refresh: loadConfigs,
+    getMockConfigs: () => configs,
+    mockExists: (endpoint: string, method?: string) => {
+      return configs.some(config => 
+        config.endpoint === endpoint && 
+        (!method || config.method === method) &&
+        config.enabled
+      );
+    }
   }));
 
   const loadConfigs = async () => {
@@ -186,7 +196,7 @@ export const MockConfigPanel = forwardRef<MockConfigPanelRef, MockConfigPanelPro
   };
 
   const handleToggleConfig = (id: string) => {
-    onToggle?.(id);
+    handleToggle(id);
   };
 
   // Helper function to validate JSON
@@ -419,7 +429,7 @@ export const MockConfigPanel = forwardRef<MockConfigPanelRef, MockConfigPanelPro
                     </button>
                     
                     <button
-                      onClick={() => onDelete?.(config.id)}
+                      onClick={() => handleDelete(config.id)}
                       className="p-1 hover:bg-muted rounded transition-colors text-red-500"
                       title="Eliminar"
                     >

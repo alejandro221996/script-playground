@@ -37,6 +37,7 @@ export default function DashboardPage() {
   const [selectedPayload, setSelectedPayload] = useState<any>(null);
   const [detectedVariables, setDetectedVariables] = useState<DetectedVariable[]>([]);
   const [configurableVariables, setConfigurableVariables] = useState<Record<string, string>>({});
+  const [mockConfigs, setMockConfigs] = useState<any[]>([]);
   const mockConfigRef = useRef<MockConfigPanelRef>(null);
 
   // Helper function para escape regex
@@ -50,14 +51,21 @@ export default function DashboardPage() {
     return `${window.location.protocol}//${window.location.hostname}:${window.location.port || '3000'}`;
   };
 
+  // Función para verificar si un mock existe
+  const mockExists = (endpoint: string, method?: string): boolean => {
+    if (!mockConfigRef.current) return false;
+    return mockConfigRef.current.mockExists(endpoint, method);
+  };
+
   // Cargar script predefinido
   const loadExampleScript = (script: ExampleScript) => {
     setSelectedScript(script);
     setScriptCode(script.code);
     setExecutionResult(null);
     
-    // Analizar URLs y variables configurables
-    const detected = analyzeScriptUrls(script.code);
+    // Analizar URLs y variables configurables con mocks existentes
+    const existingMocks = mockConfigRef.current?.getMockConfigs() || [];
+    const detected = analyzeScriptUrls(script.code, existingMocks);
     setDetectedVariables(detected);
     
     // Crear mapa inicial de variables configurables
@@ -243,10 +251,18 @@ export default function DashboardPage() {
     try {
       // Extraer datos necesarios de la request
       const url = new URL(request.url);
-      const endpoint = url.pathname;
+      const originalEndpoint = url.pathname;
+      
+      // Solo prefijar con /api/mock/ si no lo tiene ya
+      let endpoint;
+      if (originalEndpoint.startsWith('/api/mock/')) {
+        endpoint = originalEndpoint; // Ya tiene el prefijo
+      } else {
+        endpoint = `/api/mock${originalEndpoint}`; // Agregar prefijo
+      }
       
       const mockData = {
-        name: `Mock ${request.method} ${endpoint}`,
+        name: `Mock ${request.method} ${originalEndpoint}`,
         description: `Auto-generado desde ${request.url} (${request.duration}ms)`,
         endpoint: endpoint,
         method: request.method,
@@ -276,7 +292,7 @@ export default function DashboardPage() {
         console.log('✅ Mock creado exitosamente:', result);
         
         // Mostrar notificación de éxito
-        alert(`🎉 Mock creado exitosamente!\n\nEndpoint: ${endpoint}\nTiempo original: ${request.duration}ms\nMock delay: ${mockData.delay}ms`);
+        alert(`🎉 Mock creado exitosamente!\n\nEndpoint original: ${originalEndpoint}\nEndpoint mock: ${endpoint}\nTiempo original: ${request.duration}ms\nMock delay: ${mockData.delay}ms`);
         
         // Actualizar la lista de mocks automáticamente
         if (mockConfigRef.current) {
@@ -533,35 +549,108 @@ export default function DashboardPage() {
                                             <div className="text-muted-foreground truncate">{variable.originalUrl}</div>
                                           </button>
                                           
-                                          {/* Botón para usar Mock API o Token Mock */}
-                                          <button
-                                            onClick={() => {
-                                              let mockValue;
-                                              if (variable.type === 'token') {
-                                                // Para tokens, usar valor mock sin URL
-                                                mockValue = variable.mockSuggestion;
-                                              } else {
-                                                // Para URLs, agregar protocolo y puerto
-                                                const baseUrl = getCurrentBaseUrl();
-                                                mockValue = `${baseUrl}${variable.mockSuggestion}`;
-                                              }
-                                              setConfigurableVariables(prev => ({
-                                                ...prev,
-                                                [variable.name]: mockValue
-                                              }));
-                                            }}
-                                            className="px-3 py-2 text-xs border rounded bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30 text-left border-green-200 dark:border-green-800"
-                                          >
-                                            {variable.type === 'token' ? '🎭 Usar Token Mock' : '🎭 Usar Mock API'}
-                                            <div className="text-green-700 dark:text-green-300 truncate font-mono">
-                                              {variable.mockSuggestion}
+                                          {/* Sugerencias inteligentes de Mock API */}
+                                          {variable.type !== 'token' && variable.mockSuggestion && (
+                                            <div className="space-y-2">
+                                              {/* Mock existente exacto */}
+                                              {variable.mockSuggestionType === 'exact' && (
+                                                <button
+                                                  onClick={() => {
+                                                    const baseUrl = getCurrentBaseUrl();
+                                                    const mockValue = `${baseUrl}${variable.mockSuggestion}`;
+                                                    setConfigurableVariables(prev => ({
+                                                      ...prev,
+                                                      [variable.name]: mockValue
+                                                    }));
+                                                  }}
+                                                  className="px-3 py-2 text-xs border rounded bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30 text-left border-green-200 dark:border-green-800 w-full"
+                                                >
+                                                  <div className="flex items-center gap-2">
+                                                    <span>✅ Usar Mock Existente</span>
+                                                    <span className="text-xs bg-green-100 dark:bg-green-800 px-1 py-0.5 rounded">
+                                                      100% match
+                                                    </span>
+                                                  </div>
+                                                  <div className="text-green-700 dark:text-green-300 truncate font-mono">
+                                                    {variable.mockSuggestion}
+                                                  </div>
+                                                </button>
+                                              )}
+                                              
+                                              {/* Mock similar encontrado */}
+                                              {variable.mockSuggestionType === 'similar' && (
+                                                <button
+                                                  onClick={() => {
+                                                    const baseUrl = getCurrentBaseUrl();
+                                                    const mockValue = `${baseUrl}${variable.mockSuggestion}`;
+                                                    setConfigurableVariables(prev => ({
+                                                      ...prev,
+                                                      [variable.name]: mockValue
+                                                    }));
+                                                  }}
+                                                  className="px-3 py-2 text-xs border rounded bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 text-left border-blue-200 dark:border-blue-800 w-full"
+                                                >
+                                                  <div className="flex items-center gap-2">
+                                                    <span>🔄 Usar Mock Similar</span>
+                                                    <span className="text-xs bg-blue-100 dark:bg-blue-800 px-1 py-0.5 rounded">
+                                                      {Math.round((variable.similarityScore || 0) * 100)}% match
+                                                    </span>
+                                                  </div>
+                                                  <div className="text-blue-700 dark:text-blue-300 truncate font-mono">
+                                                    {variable.mockSuggestion}
+                                                  </div>
+                                                </button>
+                                              )}
+                                              
+                                              {/* Sugerencia de nuevo mock para servicio conocido */}
+                                              {variable.mockSuggestionType === 'new' && (
+                                                <div className="px-3 py-2 text-xs border rounded bg-yellow-50 dark:bg-yellow-900/20 text-left border-yellow-200 dark:border-yellow-800">
+                                                  <div className="text-yellow-700 dark:text-yellow-300 font-medium">
+                                                    💡 Servicio conocido detectado
+                                                  </div>
+                                                  <div className="text-yellow-600 dark:text-yellow-400 text-xs mt-1">
+                                                    Sugerencia: {variable.mockSuggestion}
+                                                  </div>
+                                                  <div className="text-yellow-500 dark:text-yellow-500 text-xs">
+                                                    Créalo en Mock Configuration para usar
+                                                  </div>
+                                                </div>
+                                              )}
                                             </div>
-                                            {variable.type !== 'token' && (
-                                              <div className="text-xs text-muted-foreground mt-1">
-                                                Puerto: {typeof window !== 'undefined' ? window.location.port || '3000' : '3000'}
+                                          )}
+                                          
+                                          {/* Sin sugerencias para URLs desconocidas */}
+                                          {variable.type !== 'token' && !variable.mockSuggestion && (
+                                            <div className="px-3 py-2 text-xs border rounded bg-gray-50 dark:bg-gray-900/20 text-left border-gray-200 dark:border-gray-800">
+                                              <div className="text-gray-700 dark:text-gray-300 font-medium">
+                                                🌐 API Externa
                                               </div>
-                                            )}
-                                          </button>
+                                              <div className="text-gray-600 dark:text-gray-400 text-xs mt-1">
+                                                No hay mocks similares disponibles
+                                              </div>
+                                              <div className="text-gray-500 dark:text-gray-500 text-xs">
+                                                Usa la URL real o crea un mock manualmente
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {/* Token mocks (mantener funcionalidad original) */}
+                                          {variable.type === 'token' && variable.mockSuggestion && (
+                                            <button
+                                              onClick={() => {
+                                                setConfigurableVariables(prev => ({
+                                                  ...prev,
+                                                  [variable.name]: variable.mockSuggestion
+                                                }));
+                                              }}
+                                              className="px-3 py-2 text-xs border rounded bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30 text-left border-green-200 dark:border-green-800 w-full"
+                                            >
+                                              🎭 Usar Token Mock
+                                              <div className="text-green-700 dark:text-green-300 truncate font-mono">
+                                                {variable.mockSuggestion}
+                                              </div>
+                                            </button>
+                                          )}
                                         </div>
                                         
                                         {/* Input manual para URL personalizada */}

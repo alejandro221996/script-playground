@@ -20,7 +20,6 @@ export const EXAMPLE_SCRIPTS: ExampleScript[] = [
     description: 'Script básico para obtener lista de usuarios de JSONPlaceholder',
     category: 'api',
     code: `// Script básico: Obtener usuarios de JSONPlaceholder
-console.log('🔄 Iniciando petición para obtener usuarios...');
 
 const response = await fetch('https://jsonplaceholder.typicode.com/users');
 
@@ -29,9 +28,6 @@ if (!response.ok) {
 }
 
 const users = await response.json();
-
-console.log('✅ Usuarios obtenidos exitosamente');
-console.log(\`📊 Total de usuarios: \${users.length}\`);
 
 // Mostrar información básica de cada usuario
 users.forEach((user, index) => {
@@ -56,16 +52,12 @@ return {
     description: 'Obtiene posts de un usuario específico con comentarios',
     category: 'api',
     code: `// Obtener posts de un usuario específico
-console.log(\`Obteniendo posts del usuario \${userId}...\`);
 
 const userResponse = await fetch(\`https://jsonplaceholder.typicode.com/users/\${userId}\`);
 const user = await userResponse.json();
 
 const postsResponse = await fetch(\`https://jsonplaceholder.typicode.com/posts?userId=\${userId}\`);
 const posts = await postsResponse.json();
-
-console.log(\`Usuario: \${user.name} (\${user.email})\`);
-console.log(\`Posts encontrados: \${posts.length}\`);
 
 // Obtener comentarios de cada post
 const postsWithComments = await Promise.all(
@@ -79,8 +71,6 @@ const postsWithComments = await Promise.all(
     };
   })
 );
-
-console.log('Posts con comentarios procesados');
 
 return {
   user: {
@@ -106,7 +96,6 @@ return {
     description: 'Crea un contacto en HubSpot usando API',
     category: 'hubspot',
     code: `// Crear contacto en HubSpot
-console.log('📝 Creando contacto en HubSpot...');
 
 const contactData = {
   properties: {
@@ -133,9 +122,6 @@ if (!response.ok) {
 }
 
 const result = await response.json();
-
-console.log('✅ Contacto creado exitosamente');
-console.log(\`🆔 ID del contacto: \${result.id}\`);
 
 return {
   success: true,
@@ -164,7 +150,6 @@ return {
     description: 'Procesa y transforma un array de datos',
     category: 'data',
     code: `// Transformación de datos de usuarios
-console.log('🔄 Procesando datos de usuarios...');
 
 const rawData = [
   { id: 1, name: 'Juan Pérez', age: 28, city: 'Madrid', salary: 45000 },
@@ -176,7 +161,6 @@ const rawData = [
 
 // Filtrar usuarios mayores de 27 años
 const adultUsers = rawData.filter(user => user.age > 27);
-console.log(\`👥 Usuarios mayores de 27: \${adultUsers.length}\`);
 
 // Calcular estadísticas
 const totalSalary = rawData.reduce((sum, user) => sum + user.salary, 0);
@@ -192,9 +176,6 @@ const usersByCity = rawData.reduce((acc, user) => {
   acc[user.city].push(user);
   return acc;
 }, {});
-
-console.log('📊 Estadísticas calculadas');
-console.log(\`💰 Salario promedio: €\${avgSalary.toFixed(2)}\`);
 
 return {
   totalUsers: rawData.length,
@@ -221,15 +202,12 @@ return {
     description: 'Ejemplo de llamada a API que requiere autenticación',
     category: 'api',
     code: `// API con autenticación personalizada
-console.log('🔐 Realizando petición autenticada...');
 
 const headers = {
   'Content-Type': 'application/json',
   'Authorization': \`Bearer \${process.env.API_TOKEN}\`,
   'X-API-Key': \`\${process.env.API_KEY}\`
 };
-
-console.log('🌐 Enviando petición a API externa...');
 
 // Simular respuesta exitosa para testing
 const mockResponse = {
@@ -250,10 +228,6 @@ const mockResponse = {
 //   headers
 // });
 // const result = await response.json();
-
-console.log('✅ Respuesta recibida exitosamente');
-console.log(\`👤 Usuario: \${mockResponse.data.user.name}\`);
-console.log(\`🔑 Permisos: \${mockResponse.data.user.permissions.join(', ')}\`);
 
 return {
   success: mockResponse.success,
@@ -316,8 +290,6 @@ function formatCustomDate(date = new Date(), timeZone = "America/Mexico_City") {
   return \`\${dayName}, \${year}-\${month}-\${day} \${hours}:\${minutes}:\${seconds}\`;
 }
 
-console.log('🤖 Iniciando script de Voicebot Retell AI...');
-
 const defaultFromNumber = "+525597092980";
 const fromNumber = voicebot_phone_number;
 
@@ -327,11 +299,9 @@ futureDate.setMonth(now.getMonth() + 6);
 
 // Formatting currentTime
 const currentTime = formatCustomDate();
-console.log('⏰ Tiempo actual:', currentTime);
 
 // Formatting currentTime plus 6 months
 const futureTime = formatCustomDate(futureDate);
-console.log('📅 Fecha de expiración:', futureTime);
 
 const requestData = {
   hubspot_flow: "Referencia",
@@ -366,8 +336,6 @@ const requestData = {
   },
 };
 
-console.log('📤 Cuerpo de la solicitud al Orchestrator:', JSON.stringify(requestData, null, 2));
-
 // 🔁 Enviar solicitud con reintentos
 let response, logs;
 let retryCount = 0;
@@ -389,18 +357,14 @@ while (retryCount < maxRetries) {
     }
 
     logs = await response.json();
-    console.log('✅ Respuesta de la API:', logs);
     break;
   } catch (error) {
     retryCount++;
-    console.warn(\`⚠️ Intento \${retryCount} fallido:\`, error.message);
     if (retryCount === maxRetries) {
       logs = { error: error.message };
     }
   }
 }
-
-console.log('🎯 Llamada de voicebot procesada exitosamente');
 
 return {
   success: true,
@@ -444,8 +408,6 @@ return {
     code: `// Script HubSpot - Actualizar Deal
 // Actualiza propiedades de negocio con lógica condicional
 
-console.log('🔄 Iniciando actualización de deal en HubSpot...');
-
 // 🔄 Conversión de fechas a timestamps (milisegundos)
 const convertToTimestamp = (dateStr) => {
   if (!dateStr) return null;
@@ -456,13 +418,8 @@ const convertToTimestamp = (dateStr) => {
 const startDateTimestamp = convertToTimestamp(start_date_selected);
 const schedulingDateTimestamp = convertToTimestamp(scheduling_date);
 
-console.log('📅 Fechas convertidas:');
-console.log('- Fecha inicio seleccionada:', start_date_selected, '→', startDateTimestamp);
-console.log('- Fecha de scheduling:', scheduling_date, '→', schedulingDateTimestamp);
-
 // 🔄 Lógica para transfer_status
 const cleanedTransferStatus = transfer_status === "call_transfer" ? "Si" : "No";
-console.log('📞 Status de transferencia:', transfer_status, '→', cleanedTransferStatus);
 
 // Lógica de is_primary field
 const is_primary_value = 
@@ -470,15 +427,8 @@ const is_primary_value =
     ? "Si" 
     : "No";
 
-console.log('🎓 Certificados disponibles/próximos:', {
-  available: available_study_certificates,
-  upcoming: upcoming_study_certificates,
-  is_primary: is_primary_value
-});
-
 // 🔄 Lógica para managed_voicebot
 const managed_voicebot = is_primary_value === "Si" ? "No" : "Si";
-console.log('🤖 Managed voicebot:', managed_voicebot, '(opuesto a is_primary)');
 
 const propertiesToUpdate = {
   interest_level,
@@ -492,8 +442,6 @@ const propertiesToUpdate = {
   is_reference,
   start_date_selected: startDateTimestamp
 };
-
-console.log('📦 Propiedades a actualizar:', JSON.stringify(propertiesToUpdate, null, 2));
 
 // Simulación de la llamada a HubSpot API
 const hubspotResponse = await fetch(\`https://api.hubapi.com/crm/v3/objects/deals/\${dealId}\`, {
@@ -512,10 +460,6 @@ if (!hubspotResponse.ok) {
 }
 
 const updatedDeal = await hubspotResponse.json();
-
-console.log('✅ Deal actualizado correctamente en HubSpot');
-console.log('🎯 Deal ID:', dealId);
-console.log('📊 Propiedades actualizadas exitosamente');
 
 return {
   success: true,
@@ -556,26 +500,13 @@ return {
     code: `// Script HubSpot - Crear Registro de Llamada
 // Crea llamada en HubSpot con datos de Retell AI y mapeo completo de disposiciones
 
-console.log('📞 Iniciando creación de registro de llamada en HubSpot...');
-
 if (!HUBSPOT_API_KEY) {
-    console.error("❌ Error: No se encontró la API Key.");
     throw new Error("Error: Falta API Key de HubSpot");
 }
 
 if (!contactId) {
-    console.error("❌ Error: No se recibió un Contact ID.");
     throw new Error("Error: No se encontró el Contact ID");
 }
-
-console.log('👤 Contact ID:', contactId);
-console.log('📊 Datos de llamada recibidos:', {
-    call_summary: call_summary || "Sin resumen disponible",
-    duration_ms: duration_ms || 0,
-    from_number: from_number || "Número desconocido",
-    to_number: to_number || "Número desconocido",
-    disconnection_reason: disconnection_reason || "error_unknown"
-});
 
 // Mapeo de disconnection_reason → hs_call_disposition
 const reasonToGuidMap = {
@@ -608,7 +539,6 @@ const reasonToGuidMap = {
 };
 
 const dispositionGuid = reasonToGuidMap[disconnection_reason] || reasonToGuidMap["error_unknown"];
-console.log('🎯 Mapeo de disposición:', disconnection_reason, '→', dispositionGuid);
 
 const callData = {
     properties: {
@@ -636,8 +566,6 @@ const callData = {
     ]
 };
 
-console.log('📩 Enviando solicitud a HubSpot con datos:', JSON.stringify(callData, null, 2));
-
 const response = await fetch("https://api.hubapi.com/crm/v3/objects/calls", {
     method: 'POST',
     headers: {
@@ -649,20 +577,12 @@ const response = await fetch("https://api.hubapi.com/crm/v3/objects/calls", {
 
 if (!response.ok) {
     const errorData = await response.text();
-    console.error("❌ Error en la solicitud a HubSpot:", errorData);
     throw new Error(\`Error HTTP \${response.status}: \${errorData}\`);
 }
 
 const responseData = await response.json();
 
 if (responseData && responseData.id) {
-    console.log("✅ Llamada creada exitosamente. ID:", responseData.id);
-    console.log("📋 Resumen de la llamada creada:");
-    console.log("- Call ID:", responseData.id);
-    console.log("- Duración:", Math.round((duration_ms || 0) / 1000), "segundos");
-    console.log("- Disposición:", disconnection_reason);
-    console.log("- Asociada al contacto:", contactId);
-    
     return {
         success: true,
         message: "Llamada creada con éxito",
@@ -671,7 +591,6 @@ if (responseData && responseData.id) {
         hubspotResponse: responseData
     };
 } else {
-    console.error("❌ Error: No se recibió un ID de llamada.");
     throw new Error("Error: HubSpot no devolvió un ID de llamada válido");
 }`,
     requiredVariables: {
@@ -698,15 +617,9 @@ if (responseData && responseData.id) {
     code: `// Script Contact Data Integration
 // Procesa datos de contacto y los envía a API externa con lógica de normalización
 
-console.log("🟢 Iniciando procesamiento del evento...");
-
-// Logs de depuración para is_reference
-console.log('is_reference value:', is_reference, 'type:', typeof is_reference);
-
 // Contador de llamadas
 const currentCallCount = parseInt(number_call, 10) || 0;
 const updatedCallCount = currentCallCount + 1;
-console.log(\`📞 Número de llamadas actualizado: \${updatedCallCount}\`);
 
 // Helper: normalizar "es_referencia" a "Si"/"No"/"" (o null)
 const normalizeReferencia = (val) => {
@@ -723,8 +636,6 @@ const normalizeReferencia = (val) => {
   return null;
 };
 
-console.log('🔄 Normalizando referencia:', is_reference, '→', normalizeReferencia(is_reference));
-
 // ✅ Lógica: gestionado_por_voice_bot depende de is_primary
 const esPrimaria =
   available_study_certificates === "Si" ||
@@ -734,20 +645,9 @@ const esPrimaria =
 
 const gestionadoPorVoiceBot = esPrimaria === "Si" ? "No" : null;
 
-console.log('🎓 Lógica de certificados:');
-console.log('- available_study_certificates:', available_study_certificates);
-console.log('- upcoming_study_certificates:', upcoming_study_certificates);
-console.log('- es_primaria:', esPrimaria);
-console.log('- gestionado_por_voice_bot:', gestionadoPorVoiceBot);
-
 // ✅ lógica: contactado_x_voicebot según hs_call_disposition
 const voicebotDispositions = ['Inactivity', 'user_hangup', 'agent_hangup', 'call_transfer'];
 const contactadoPorVoiceBot = voicebotDispositions.includes(hs_call_disposition) ? "Si" : null;
-
-console.log('📞 Disposición de llamada:');
-console.log('- hs_call_disposition:', hs_call_disposition);
-console.log('- contactado_x_voicebot:', contactadoPorVoiceBot);
-console.log('- voicebot dispositions válidas:', voicebotDispositions);
 
 const contactData = {
   sentimiento: sentiment ?? null,
@@ -768,15 +668,11 @@ const contactData = {
   contactado_x_voicebot: contactadoPorVoiceBot
 };
 
-console.log("📦 Datos preparados para envío:", JSON.stringify(contactData, null, 2));
-
 const requestData = {
   contactData,
   serviceToken: serviceToken,
   serviceAction: "form"
 };
-
-console.log("🚀 Enviando datos a API externa...");
 
 const response = await fetch(
   'https://mas-utel.inconcertcc.com/public/integration/process',
@@ -795,9 +691,6 @@ if (!response.ok) {
 }
 
 const responseData = await response.json();
-
-console.log("✅ Respuesta exitosa de la API externa.");
-console.log("📊 Response data:", responseData);
 
 return {
   success: true,
@@ -862,8 +755,6 @@ function formatCustomDate(date = new Date(), timeZone = "America/Mexico_City") {
   return \`\${dayName}, \${year}-\${month}-\${day} \${hours}:\${minutes}:\${seconds}\`;
 }
 
-console.log('🎓 Iniciando script de seguimiento académico B4...');
-
 // 🗓️ Formatear fecha de inicio
 const fechaInicioRaw = start_date;
 let fechaInicioFormateada = "Fecha no disponible";
@@ -884,10 +775,6 @@ if (fechaFinRaw) {
     fechaFinFormateada = formatCustomDate(fechaFin);
   }
 }
-
-console.log('📅 Fechas procesadas:');
-console.log('- Fecha inicio raw:', fechaInicioRaw, '→', fechaInicioFormateada);
-console.log('- Fecha fin raw:', fechaFinRaw, '→', fechaFinFormateada);
 
 // 🕒 Obtener fecha y hora actual en formato YYYY-MM-DD HH:mm:ss (zona México) con día de la semana
 const mxTime = new Date().toLocaleString("en-US", {
@@ -911,8 +798,6 @@ const dayOfWeek = new Intl.DateTimeFormat("es-MX", {
 }).format(new Date());
 
 const currentDateTimeFormatted = \`\${dayOfWeek.toLowerCase()}, \${formattedDate}\`;
-
-console.log('⏰ Tiempo actual (México):', currentDateTimeFormatted);
 
 // 📦 Construir el cuerpo de la solicitud
 const requestData = {
@@ -943,16 +828,6 @@ const requestData = {
   },
 };
 
-console.log('📦 Datos del estudiante:');
-console.log('- Nombre:', firstname);
-console.log('- Programa:', program);
-console.log('- Matrícula:', matricula);
-console.log('- Nivel de riesgo:', risk_level);
-console.log('- Bimestre actual:', current_bimester);
-console.log('- Campus:', campus);
-
-console.log('📤 Cuerpo de la solicitud al Orchestrator:', JSON.stringify(requestData, null, 2));
-
 // 🔁 Enviar solicitud con reintentos
 let response, logs;
 let retryCount = 0;
@@ -974,19 +849,14 @@ while (retryCount < maxRetries) {
     }
 
     logs = await response.json();
-    console.log('✅ Respuesta de la API:', logs);
     break;
   } catch (error) {
     retryCount++;
-    console.warn(\`⚠️ Intento \${retryCount} fallido:\`, error.message);
     if (retryCount === maxRetries) {
       logs = { error: error.message };
     }
   }
 }
-
-console.log('🎯 Llamada de seguimiento académico procesada exitosamente');
-console.log('📊 Reintentos utilizados:', retryCount);
 
 return {
   success: true,

@@ -1,0 +1,44 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "mcp.mcpServers": {
+      "postgresql-script-playground": {
+        "command": "node",
+        "args": [
+          "./mcp-servers/postgresql/dist/index.js"
+        ],
+        "env": {
+          "DATABASE_URL": "postgresql://my-expenses-db_owner:npg_OMd0ye2DLCGT@ep-ancient-wildflower-a5rmyl19-pooler.us-east-2.aws.neon.tech/mock_apis?sslmode=require&channel_binding=require"
+        },
+        "disabled": false,
+        "alwaysAllow": ["list_mock_configs", "get_mock_stats", "search_mocks", "execute_query", "describe_table", "list_tables"]
+      }
+    },
+    "github.copilot.advanced": {
+      "debug.overrideEngine": "copilot-chat"
+    },
+    "github.copilot.enable": {
+      "*": true,
+      "yaml": true,
+      "plaintext": true,
+      "markdown": true,
+      "typescript": true,
+      "javascript": true,
+      "sql": true
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "github.copilot",
+      "github.copilot-chat",
+      "ms-vscode.vscode-typescript-next",
+      "bradlc.vscode-tailwindcss",
+      "prisma.prisma",
+      "ms-vscode.vscode-json"
+    ]
+  }
+}

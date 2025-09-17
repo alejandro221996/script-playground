@@ -6,10 +6,12 @@ export interface DetectedVariable {
   description: string;
   line?: number;
   mockSuggestion?: string; // Sugerencia de endpoint mock
+  mockSuggestionType?: 'exact' | 'similar' | 'new'; // Tipo de sugerencia
+  similarityScore?: number; // Puntuación de similitud (0-1)
   originalUrl?: string; // URL original para referencia
 }
 
-export function analyzeScriptUrls(code: string): DetectedVariable[] {
+export function analyzeScriptUrls(code: string, existingMocks?: Array<{endpoint: string, method: string, enabled: boolean}>): DetectedVariable[] {
   const variables: DetectedVariable[] = [];
   const lines = code.split('\n');
 
@@ -29,7 +31,7 @@ export function analyzeScriptUrls(code: string): DetectedVariable[] {
       while ((match = pattern.exec(line)) !== null) {
         const url = match[1] || match[2];
         if (url && url.startsWith('http')) {
-          const mockSuggestion = generateMockEndpoint(url);
+          const mockSuggestion = findBestMockSuggestion(url, existingMocks);
           const variableName = generateVariableName(url);
 
           variables.push({
@@ -39,7 +41,7 @@ export function analyzeScriptUrls(code: string): DetectedVariable[] {
             type: 'url',
             description: `API endpoint detectado: ${extractServiceName(url)}`,
             line: lineNumber,
-            mockSuggestion: mockSuggestion
+            ...mockSuggestion
           });
         }
       }
@@ -95,8 +97,154 @@ export function analyzeScriptUrls(code: string): DetectedVariable[] {
   return uniqueVariables;
 }
 
-// Generar endpoint mock basado en la URL original
-function generateMockEndpoint(url: string): string {
+// Función inteligente para encontrar la mejor sugerencia de mock
+function findBestMockSuggestion(url: string, existingMocks?: Array<{endpoint: string, method: string, enabled: boolean}>): {
+  mockSuggestion?: string;
+  mockSuggestionType?: 'exact' | 'similar' | 'new';
+  similarityScore?: number;
+} {
+  try {
+    const urlObj = new URL(url);
+    const hostname = urlObj.hostname;
+    const pathname = urlObj.pathname;
+    
+    // 1. Verificar servicios conocidos con alta confianza
+    const knownService = getKnownServiceMock(hostname, pathname);
+    if (knownService && existingMocks) {
+      const exactMatch = existingMocks.find(mock => 
+        mock.endpoint === knownService && mock.enabled
+      );
+      if (exactMatch) {
+        return {
+          mockSuggestion: knownService,
+          mockSuggestionType: 'exact',
+          similarityScore: 1.0
+        };
+      }
+    }
+    
+    // 2. Buscar coincidencias similares en mocks existentes
+    if (existingMocks && existingMocks.length > 0) {
+      const similarMock = findSimilarMock(url, existingMocks);
+      if (similarMock.score > 0.6) { // Solo sugerir si hay > 60% similitud
+        return {
+          mockSuggestion: similarMock.endpoint,
+          mockSuggestionType: 'similar',
+          similarityScore: similarMock.score
+        };
+      }
+    }
+    
+    // 3. Solo sugerir nuevo mock para servicios conocidos
+    if (knownService) {
+      return {
+        mockSuggestion: knownService,
+        mockSuggestionType: 'new',
+        similarityScore: 0.8 // Alta confianza para servicios conocidos
+      };
+    }
+    
+    // 4. No sugerir nada para URLs desconocidas
+    return {};
+    
+  } catch (e) {
+    return {};
+  }
+}
+
+// Verificar servicios conocidos
+function getKnownServiceMock(hostname: string, pathname: string): string | null {
+  // Servicios con mapeo específico
+  if (hostname.includes('hubapi.com') || hostname.includes('hubspot')) {
+    if (pathname.includes('/calls')) return '/api/mock/hubspot-calls';
+    if (pathname.includes('/deals')) return '/api/mock/hubspot-deals'; 
+    if (pathname.includes('/contacts')) return '/api/mock/hubspot-contacts';
+    return '/api/mock/hubspot-general';
+  }
+  
+  if (hostname.includes('call-orchestrator') || hostname.includes('retell')) {
+    return '/api/mock/call-orchestrator';
+  }
+  
+  if (hostname.includes('inconcertcc.com')) {
+    return '/api/mock/integration-api';
+  }
+  
+  // Servicios públicos comunes
+  if (hostname.includes('jsonplaceholder.typicode.com')) {
+    if (pathname.includes('/users')) return '/api/mock/users';
+    if (pathname.includes('/posts')) return '/api/mock/posts';  
+    if (pathname.includes('/comments')) return '/api/mock/comments';
+    return '/api/mock/jsonplaceholder';
+  }
+  
+  if (hostname.includes('reqres.in')) {
+    return '/api/mock/reqres';
+  }
+  
+  if (hostname.includes('httpbin.org')) {
+    return '/api/mock/httpbin';
+  }
+  
+  return null;
+}
+
+// Buscar mock similar usando algoritmo de similitud
+function findSimilarMock(url: string, existingMocks: Array<{endpoint: string, method: string, enabled: boolean}>): {
+  endpoint: string;
+  score: number;
+} {
+  const urlObj = new URL(url);
+  const hostname = urlObj.hostname;
+  const pathname = urlObj.pathname;
+  
+  let bestMatch = { endpoint: '', score: 0 };
+  
+  for (const mock of existingMocks.filter(m => m.enabled)) {
+    const score = calculateSimilarity(hostname, pathname, mock.endpoint);
+    if (score > bestMatch.score) {
+      bestMatch = { endpoint: mock.endpoint, score };
+    }
+  }
+  
+  return bestMatch;
+}
+
+// Calcular similitud entre URL y endpoint mock
+function calculateSimilarity(hostname: string, pathname: string, mockEndpoint: string): number {
+  let score = 0;
+  
+  // Similitud por dominio
+  const domainParts = hostname.split('.');
+  const mockParts = mockEndpoint.split('/');
+  
+  for (const domainPart of domainParts) {
+    for (const mockPart of mockParts) {
+      if (domainPart.toLowerCase().includes(mockPart.toLowerCase()) ||
+          mockPart.toLowerCase().includes(domainPart.toLowerCase())) {
+        score += 0.3;
+      }
+    }
+  }
+  
+  // Similitud por path
+  const pathParts = pathname.split('/').filter(p => p.length > 0);
+  for (const pathPart of pathParts) {
+    for (const mockPart of mockParts) {
+      if (pathPart.toLowerCase() === mockPart.toLowerCase()) {
+        score += 0.4;
+      } else if (pathPart.toLowerCase().includes(mockPart.toLowerCase()) ||
+                 mockPart.toLowerCase().includes(pathPart.toLowerCase())) {
+        score += 0.2;
+      }
+    }
+  }
+  
+  return Math.min(score, 1.0); // Máximo 1.0
+}
+
+// Generar endpoint mock basado en la URL original (función legacy)
+function generateMockEndpointLegacy(url: string): string {
   try {
     const urlObj = new URL(url);
     const hostname = urlObj.hostname;

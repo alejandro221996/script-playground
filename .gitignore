@@ -9,6 +9,11 @@ yarn-error.log*
 out/
 build/
 
+# Webpack cache
+.webpack/
+.cache/
+node_modules/.cache/
+
 # Environment variables
 .env
 .env.local

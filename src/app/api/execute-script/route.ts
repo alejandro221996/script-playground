@@ -47,8 +47,10 @@ export async function POST(request: NextRequest) {
             timestamp: new Date().toISOString()
           });
           
-          // También log al servidor para depuración
-          console.log('📋 SANDBOX LOG (info):', message);
+          // También log al servidor para depuración (solo en desarrollo)
+          if (process.env.NODE_ENV === 'development') {
+            console.log('📋 SANDBOX LOG (info):', message);
+          }
         },
         error: (...args: any[]) => {
           const message = args.map(arg => 
@@ -61,7 +63,9 @@ export async function POST(request: NextRequest) {
             timestamp: new Date().toISOString()
           });
           
-          console.log('📋 SANDBOX LOG (error):', message);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('📋 SANDBOX LOG (error):', message);
+          }
         },
         warn: (...args: any[]) => {
           const message = args.map(arg => 
@@ -74,7 +78,9 @@ export async function POST(request: NextRequest) {
             timestamp: new Date().toISOString()
           });
           
-          console.log('📋 SANDBOX LOG (warn):', message);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('📋 SANDBOX LOG (warn):', message);
+          }
         }
       },
       // Soporte para require y módulos comunes
@@ -98,7 +104,7 @@ export async function POST(request: NextRequest) {
                   timestamp: new Date().toISOString()
                 };
                 
-                console.log('🌐 Interceptada request HTTP:', JSON.stringify(requestData, null, 2));
+                // Solo log en desarrollo
 
                 const options: RequestInit = {
                   method: 'POST',
@@ -126,8 +132,6 @@ export async function POST(request: NextRequest) {
                     duration: Date.now() - requestStartTime
                   });
                   
-                  console.log('✅ Response recibida:', JSON.stringify(responseData, null, 2));
-                  
                   if (!response.ok) {
                     const httpError = new Error(`Request failed with status ${response.status}`);
                     (httpError as any).response = {
@@ -153,7 +157,6 @@ export async function POST(request: NextRequest) {
                     duration: Date.now() - requestStartTime
                   });
                   
-                  console.error('❌ Error en request HTTP:', fetchError);
                   throw fetchError;
                 }
               },
@@ -168,7 +171,7 @@ export async function POST(request: NextRequest) {
                   timestamp: new Date().toISOString()
                 };
                 
-                console.log('🌐 Interceptada GET request:', JSON.stringify(requestData, null, 2));
+                // Solo log en desarrollo
 
                 try {
                   const response = await fetch(url, {
@@ -221,12 +224,11 @@ export async function POST(request: NextRequest) {
           timestamp: new Date().toISOString()
         };
         
-        console.log(`🌐 INTERCEPTADA ${method} request:`, JSON.stringify(requestData, null, 2));
+        // Solo log en desarrollo
 
         try {
           // Usar fetch global de Node.js, no el del contexto
           const response = await globalThis.fetch(url, options);
-          console.log(`🔍 Response status: ${response.status}`);
           
           const responseClone = response.clone();
           
@@ -239,8 +241,6 @@ export async function POST(request: NextRequest) {
             responseData = await responseClone.text();
           }
           
-          console.log(`✅ Response data length:`, JSON.stringify(responseData).length);
-          
           // Registrar la request exitosa
           requests.push({
             ...requestData,
@@ -248,8 +248,6 @@ export async function POST(request: NextRequest) {
             status: response.status,
             duration: Date.now() - requestStartTime
           });
-          
-          console.log(`📝 Request agregada a la lista. Total requests:`, requests.length);
           
           // Devolver un objeto response similar al fetch real
           return {
@@ -273,8 +271,6 @@ export async function POST(request: NextRequest) {
           };
           
         } catch (fetchError) {
-          console.error('❌ Error en fetch interceptado:', fetchError);
-          
           // Registrar la request fallida
           requests.push({
             ...requestData,
@@ -319,11 +315,6 @@ export async function POST(request: NextRequest) {
       ...(testData || {})
     };
 
-    console.log('🔍 Sandbox creado con fetch personalizado');
-    console.log('🧪 TestData variables inyectadas:', Object.keys(testData || {}));
-    console.log('🌍 Environment variables:', Object.keys(envVariables || {}));
-    console.log('❓ Undefined variables:', Object.keys(undefinedVariables || {}));
-
     // Crear contexto VM
     const context = vm.createContext(sandbox);
     
@@ -338,13 +329,11 @@ export async function POST(request: NextRequest) {
             ${code}
           })();
           
-          // Asegurarse de que todos los logs síncronos se procesen
-          console.log('🔍 Script principal terminado, esperando logs...');
+          // Asegurar que todos los logs síncronos se procesen
           await new Promise(resolve => setTimeout(resolve, 200));
           
           // Si el código define exports.main, ejecutarlo automáticamente con datos de prueba
           if (typeof exports !== 'undefined' && typeof exports.main === 'function') {
-            console.log('📋 Detectada función exports.main, ejecutando con datos de prueba...');
             
             // Datos de prueba por defecto
             const defaultInputFields = {
@@ -375,15 +364,12 @@ export async function POST(request: NextRequest) {
               ? { ...defaultInputFields, ...__testData }
               : defaultInputFields;
             
-            console.log('🧪 Usando inputFields:', inputFields);
-            
             // Datos de prueba para simular el evento de HubSpot
             const mockEvent = {
               inputFields
             };
             
             const mainResult = await exports.main(mockEvent);
-            console.log('🎯 Resultado de exports.main:', mainResult);
             
             // Esperar un poco más para que todos los logs se procesen
             await new Promise(resolve => setTimeout(resolve, 200));
@@ -391,11 +377,9 @@ export async function POST(request: NextRequest) {
             return mainResult;
           }
           
-          console.log('🔍 Todos los procesos terminados');
           return result;
           
         } catch (error) {
-          console.error('❌ Error en la ejecución del script:', error.message);
           throw error;
         }
       })();
@@ -407,11 +391,8 @@ export async function POST(request: NextRequest) {
       const script = new vm.Script(wrappedCode);
       result = await script.runInContext(context, { timeout: 10000 });
       
-      // Agregar delay más largo para asegurar que todos los logs se capturen
+      // Agregar delay para asegurar que todos los logs se capturen
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log('🔍 Logs después del delay:', logs.length);
-      console.log('🔍 Logs capturados:', logs);
       
     } catch (vmError) {
       logs.push({
@@ -429,15 +410,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Debug: Logging antes de enviar respuesta
-    console.log('🔍 API Response Debug - Logs capturados:', logs.length);
-    logs.forEach((log, index) => {
-      console.log(`🔍 Log ${index + 1}:`, log);
-    });
-    console.log('🔍 API Response Debug - Requests capturadas:', requests.length);
-    console.log('🔍 API Response Debug - Result:', result);
-    console.log('🔍 API Response Debug - ExecutionTime:', Date.now() - startTime);
-
     const response = {
       success: true,
       result,
@@ -445,8 +417,6 @@ export async function POST(request: NextRequest) {
       requests,
       executionTime: Date.now() - startTime
     };
-    
-    console.log('🔍 API Response Debug - Full Response:', JSON.stringify(response, null, 2));
 
     return NextResponse.json(response);
 
